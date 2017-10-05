@@ -1,46 +1,56 @@
 #include "mraa.hpp"
 
 #include <iostream>
+#include <stdint.h>		//libreria para "sprintf()""
 using namespace std;
 
-enum Tipos { OBTENER_LUX,OBTENER_MAX, OBTENER_MIN, OBTENER_PROM, OBTENER_TODO};
+enum Tipos { OBTENER_LUX,OBTENER_MAX, OBTENER_MIN, OBTENER_PROM, OBTENER_TODO, 
+	RESPONDER_LUX,RESPONDER_MAX, RESPONDER_MIN, RESPONDER_PROM, RESPONDER_TODO, ERROR};
 
+#define tamanioMaxPaquete 73
+#define tamanioMinPaquete 7
 
 int main() {
 	// Inicializar led conectado a GPIO y controlador de I2C
 	mraa::Gpio* d_pin = NULL;
 
-	d_pin = new mraa::Gpio(3, true, true);
+	d_pin = new mraa::Gpio(3, true, true); //primer parametro es el PIN que va a utilizar para gpio.
 
     mraa::I2c* i2c;
     i2c = new mraa::I2c(0); //UTILIZA EL CONSTRUCTOR ISC(BUS ,RAW) CON RAW=NULL Y BUS=0.
     i2c->address(8); //LE INDICA QUE EL ESCLAVO A ESCUCHAR ESTA EN LA DIR 8.
+    
+    //inicializo el tipo y el arreglo que almacenara la respuesta:
+	enum Tipos tipo_msje= OBTENER_LUX;
+	uint8_t receive_buf[tamanioMaxPaquete];	//arreglo que almacena la respuesta.
+	uint8_t send_buf[tamanioMinPaquete]={"<07$"};		//arreglo que almacena lo recibido
 
-    uint8_t rx_tx_buf[32];
-
-    Tipos tipo_msje= OBTENER_LUX;
-    uint8_t send_buf[33]={"123456789"};		//LO DEJAMOS EN 32 PORQUE SINO NO ANDABA (SERA POR EL TAMANO DEL BUS?)
+	sprintf( send_buf, "%s%d$>", send_buf, tipo_msje);	//concatena tipo_msje y "$>".
+    //..fin inializar variables paquete.
 
     // Indefinidamente
-    for (;;) {
+    for (;;){
 
-    	// Apagar led y recibir por I2C
-    	sleep(1);
-    	d_pin->write(0);
-    	i2c->read(rx_tx_buf, 6);
+	    //enviar paquete:
+	    i2c->write(send_buf,tamanioMinPaquete); //parametros: (1)datos a enviar y (2) cant de datos a enviar
+	    //..fin enviar paquete.
 
+	    //una vez enviado el pedido lee del buffer la respuesta del slave.
+	    sleep(1);
+	    d_pin->write(0);
+	    //leo el primer byte
+	    i2c->read(receive_buf[0], 1);
+	    if(receive_buf[0]=='<'){	//comienza un paquete..
 
-
-    	i2c->write(send_buf,10);
+	    }	
 
     	// Luego de un segundo, encender led e imprimir por stdout
     	sleep(1);
     	d_pin->write(1);
-    	printf((char *) rx_tx_buf, "%s\n");
+    	printf((char *) receive_buf, "%s\n");
 
     	// Forzar la salida de stdout
     	fflush(stdout);
     }
-
     return 0;
 }
