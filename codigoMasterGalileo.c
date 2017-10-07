@@ -3,8 +3,18 @@
 #include <stdint.h>		//libreria para "sprintf()""
 using namespace std;
 
-enum Tipos { OBTENER_LUX,OBTENER_MAX, OBTENER_MIN, OBTENER_PROM, OBTENER_TODO, 
-	RESPONDER_LUX,RESPONDER_MAX, RESPONDER_MIN, RESPONDER_PROM, RESPONDER_TODO, ERROR};
+#define OBTENER_LUX '0'
+#define OBTENER_MAX '1'
+#define OBTENER_MIN '2'
+#define OBTENER_PROM '3'
+#define OBTENER_TODO '4'
+
+#define RESPONDER_LUX '5'
+#define RESPONDER_MAX '6'
+#define RESPONDER_MIN '7'
+#define RESPONDER_PROM '8'
+#define RESPONDER_TODO '9'
+#define ERROR 'E'
 
 #define tamanioMaxPaquete 73
 #define tamanioMinPaquete 7
@@ -18,57 +28,58 @@ int main() {
     mraa::I2c* i2c;
     i2c = new mraa::I2c(0); //UTILIZA EL CONSTRUCTOR ISC(BUS ,RAW) CON RAW=NULL Y BUS=0.
     i2c->address(8); //LE INDICA QUE EL ESCLAVO A ESCUCHAR ESTA EN LA DIR 8.
-    
+
     //inicializo el tipo y el arreglo que almacenara la respuesta:
-	enum Tipos tipo_enviado= OBTENER_LUX;
+	char tipo_enviado= OBTENER_TODO;
 	uint8_t receive_buf[tamanioMaxPaquete];	//arreglo que almacena la respuesta.
 	uint8_t send_buf[tamanioMinPaquete]={"<07$"};		//arreglo que almacena lo recibido
 
-	sprintf( send_buf, "%s%d$>", send_buf, tipo_enviado);	//concatena tipo_msje y "$>".
+	sprintf( (char*)send_buf, "%s%c$>", send_buf, tipo_enviado);	//concatena tipo_msje y "$>".
     //..fin inializar variables paquete.
 
     // Indefinidamente
     for (;;){
-
+    	//printf("%s", send_buf);
+    	fflush(stdout);
 	    //enviar paquete de solicitud al slave:
-	    i2c->write(send_buf,tamanioMinPaquete); //parametros: (1)datos a enviar y (2) cant de datos a enviar
+	    i2c->write(send_buf,tamanioMinPaquete+1); //parametros: (1)datos a enviar y (2) cant de datos a enviar
 	    //..fin enviar paquete.
 
 	    //una vez enviado el pedido lee del buffer la respuesta del slave.
 	    sleep(1);
 	    d_pin->write(0);
 	    //leo el primer byte
-	    i2c->read(receive_buf[0], 1);
+	    i2c->read(receive_buf,1);
+
+	    printf("paquete: %c\n",(char)receive_buf[0]);
 	    if(receive_buf[0]=='<'){	//comienza un paquete..
 	    	//leemos del bus el tamanio total del paquete:
-	    	i2c->read(receive_buf[1],3);		//leo campos "tamañoTotal" y separador "$"
-	    	
-	    	if(receive_buf[3]=="$"){		//si el 3er Byte es el separador de TamañoTotal..
-		    	
+	    	i2c->read(receive_buf,3);		//leo campos "tamañoTotal" y separador "$"
+
+	    	printf("token: %c\n", receive_buf[0]);
+	    	if(receive_buf[2]=='$'){		//si el 3er Byte es el separador de TamañoTotal..
+
 		    	//convierto el valor leido en un entero (TamañoTotal):
 		    	int tamTotal=0;
 				int digito;
-				for(int i=1; i<3; i++){
-					digito=  recieve_buf[i]- '0';
+				for(int i=0; i<2; i++){
+					digito=  receive_buf[i]- '0';
 					tamTotal= tamTotal*10 + digito;
 				}
+				printf("el tamaño es: %d", tamTotal);
 				//..fin conversion.
 
 				//conociendo el tamaño total, leemos del bus el resto de los Bytes:
-				i2c->read(receive_buf[4],tamTotal-4);	//tamTotal-( "<" + "tamañoTotal" + "$" )=4 Bytes menos.
+				i2c->read(receive_buf,tamTotal-4);	//tamTotal-( "<" + "tamañoTotal" + "$" )=4 Bytes menos.
 				//..fin lectura total.
-				if(receive_buf[5]=="$"){	//si el 5to Byte es el separador de Tipo..
+				if(receive_buf[1]=='$'){	//si el 5to Byte es el separador de Tipo..
 
 					//determino y convierto a int el tipo del paquete:
-					enum Tipos tipo_recibido=  recieve_buf[4]- '0';
-					int tipoCorrecto=0;
-					//chequeo que lo solicitado se corresponda con lo recibido: 
-					switch(tipo_enviado){
-						case OBTENER_LUX: {
-							if(tipo_recibido==RESPONDER_LUX)
-								tipoCorrecto=1;
-						}break;
 
+					char tipo_recibido= receive_buf[0];
+					int tipoCorrecto=0;
+					//chequeo que lo solicitado se corresponda con lo recibido:
+					switch(tipo_enviado){
 						case OBTENER_LUX: {
 							if(tipo_recibido==RESPONDER_LUX)
 								tipoCorrecto=1;
@@ -101,12 +112,12 @@ int main() {
 					}//fin switch.
 
 					if(tipoCorrecto){	//si se corresponde lo pedido con lo recibido:
-						uint8_t payload[tamTotal-7]		//TamañoTotal-7 Bytes
+						uint8_t payload[tamTotal-7];		//TamañoTotal-7 Bytes
 						int finPaquete=0;	//encontre el simbolo de fin de paquete ">"
-						int posBuffer=6;
+						int posBuffer=2;
 						int posPayload=0;
-						while(posBuffer<tamanioMaxPaquete && !finPaquete){	//leo y agrego al arreglo hasta llegar al ">"
-							if(receive_buf[posBuffer]==">")
+						while(posBuffer<tamTotal-4 && !finPaquete){	//leo y agrego al arreglo hasta llegar al ">"
+							if(receive_buf[posBuffer]=='>')
 								finPaquete=1;
 							else {
 								payload[posPayload]=receive_buf[posBuffer];
@@ -116,20 +127,21 @@ int main() {
 						}
 						if(finPaquete)
 							printf((char *) payload[tamTotal-7], "%s\n");
-						else 
+						else
 							printf("ERROR! los datos recibidos estan corruptos\n" );
 					}
-					else 
+					else
 						printf("ERROR! los datos recibidos no concuerdan con los solicitados\n" );
-					
+
 					//ENCIENDO LED DE CONTROL..
     				sleep(1);
     				d_pin->write(1);
     				// Forzar la salida de stdout
-    				fflush(stdout);
+
 				}//..fin separador Tipo
 			}//..fin separador TamañoTotal
 	    }//..fin comienza Paquete
+	    fflush(stdout);
     }//fin BUCLE INFINITO..
     return 0;
 }//FIN MAIN..
