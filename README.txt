@@ -7,3 +7,6 @@ Links para el labo03:
   https://iotdk.intel.com/docs/master/mraa/classmraa_1_1_i2c.html
 [3] Libreria WIRE de Arduino: 
   https://www.arduino.cc/en/Reference/Wire
+[4] programas para compilar C y C++ en Linux:
+  https://www.cyberciti.biz/faq/howto-compile-and-run-c-cplusplus-code-in-linux/
+
