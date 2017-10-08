@@ -119,17 +119,34 @@ int main(){
 							int finPaquete=0;	//encontre el simbolo de fin de paquete ">"
 							int posBuffer=2;
 							int posPayload=0;
+							int encontreSeparador=0;
+							int contadorSeparadores=0;
 							while(posBuffer<tamTotal-4 && !finPaquete){	//leo y agrego al arreglo hasta llegar al ">"
-								if(receive_buf[posBuffer]=='>')
-									finPaquete=1;
+								if(receive_buf[posBuffer]=='>'){
+									if(encontreSeparador){
+										payload[posPayload]='>';
+										encontreSeparador=0;
+										contadorSeparadores++;
+										posPayload++;
+										posBuffer++;
+									}
+									else
+										finPaquete=1;
+								}
 								else {
-									payload[posPayload]=receive_buf[posBuffer];
-									posBuffer++;
-									posPayload++;
+									if(receive_buf[posBuffer]=='/'){
+										encontreSeparador=1;
+										posBuffer++;
+									}
+									else {
+										payload[posPayload]=receive_buf[posBuffer];
+										posPayload++;
+										posBuffer++;
+									}
 								}
 							}
 							//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
-							if((finPaquete)&&(posPayload==tamTotal-7))	 
+							if((finPaquete)&&(posPayload+contadorSeparadores==tamTotal-7))	 
 								printf("%s\n", (char*)payload);
 							else
 								printf("ERROR! los datos recibidos estan corruptos\n" );
