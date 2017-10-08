@@ -1,7 +1,9 @@
 #include "mraa.hpp"
 #include <iostream>
 #include <stdint.h>		//libreria para "sprintf()""
-using namespace std;
+#include <string.h>		//libreria para IO
+#include <stdio.h>		//libreria para IO
+
 
 #define OBTENER_LUX '0'
 #define OBTENER_MAX '1'
@@ -16,9 +18,11 @@ using namespace std;
 #define RESPONDER_TODO '9'
 #define ERROR 'E'
 
-#define tamanioMaxPaquete 73
+
+#define tamanioMaxPaquete 80
 #define tamanioMinPaquete 7
 
+using namespace std;
 int main() {
 	// Inicializar led conectado a GPIO y controlador de I2C
 	mraa::Gpio* d_pin = NULL;
@@ -30,19 +34,40 @@ int main() {
     i2c->address(8); //LE INDICA QUE EL ESCLAVO A ESCUCHAR ESTA EN LA DIR 8.
 
     //inicializo el tipo y el arreglo que almacenara la respuesta:
-	char tipo_enviado= OBTENER_TODO;
-	uint8_t receive_buf[tamanioMaxPaquete];	//arreglo que almacena la respuesta.
-	uint8_t send_buf[tamanioMinPaquete]={"<07$"};		//arreglo que almacena lo recibido
-
-	sprintf( (char*)send_buf, "%s%c$>", send_buf, tipo_enviado);	//concatena tipo_msje y "$>".
+	uint8_t receive_buf[tamanioMaxPaquete];		//arreglo que almacena la respuesta.
+	uint8_t send_buf[tamanioMinPaquete];		//arreglo que almacena lo recibido
     //..fin inializar variables paquete.
 
     // Indefinidamente
     for (;;){
-    	//printf("%s", send_buf);
-    	fflush(stdout);
+
+    	//solicito al usuario el tipo msje que quiero enviar: (solo permito OBTENER_...):
+		string input="";
+		char tipo_enviado = {0};
+		int opcionValida=0;
+		while (!opcionValida) {
+			cout << "Ingrese la opción a realizar: ";
+			getline(cin, input);
+			if (input.length() == 1){
+		    	tipo_enviado = input[0];
+		    	if(tipo_enviado>=OBTENER_LUX && tipo_enviado<=OBTENER_TODO)
+			 	opcionValida=1;
+			
+			else	cout << "opcion invalida, intente de nuevo" << endl;
+			}
+ 		}
+ 		cout << "Ingreso la opcion: " << tipo_enviado << endl << endl;		//MUESTRO LO QUE LEI
+    	//...fin solicitar usuario.
+
+ 		//ARMO el paquete según lo solicitado por el usuario:
+ 		sprintf( (char*)send_buf, "<07$%c$>", tipo_enviado);	//genera paquete OBTENER...
+ 		cout << "Paquete: " << send_buf << endl << endl;		//MUESTRO PAQUETE EN CONSOLA..
+ 		//..fin armar paquete.
+
+    	fflush(stdout);		//limpio buffer..
+
 	    //enviar paquete de solicitud al slave:
-	    i2c->write(send_buf,tamanioMinPaquete+1); //parametros: (1)datos a enviar y (2) cant de datos a enviar
+	    i2c->write(send_buf,tamanioMinPaquete+1); 				//El +1 es por el terminador.
 	    //..fin enviar paquete.
 
 	    //una vez enviado el pedido lee del buffer la respuesta del slave.
@@ -51,7 +76,7 @@ int main() {
 	    //leo el primer byte
 	    i2c->read(receive_buf,1);
 
-	    printf("paquete: %c\n",(char)receive_buf[0]);
+	    printf("paquete: %c\n",(char)receive_buf[0]);				
 	    if(receive_buf[0]=='<'){	//comienza un paquete..
 	    	//leemos del bus el tamanio total del paquete:
 	    	i2c->read(receive_buf,3);		//leo campos "tamañoTotal" y separador "$"
@@ -63,7 +88,7 @@ int main() {
 		    	int tamTotal=0;
 				int digito;
 				for(int i=0; i<2; i++){
-					digito=  receive_buf[i]- '0';
+					digito=  receive_buf[i]- '0';	//obtengo int correspondiente al char.
 					tamTotal= tamTotal*10 + digito;
 				}
 				printf("el tamaño es: %d", tamTotal);
@@ -125,8 +150,9 @@ int main() {
 								posPayload++;
 							}
 						}
-						if(finPaquete)
-							printf((char *) payload[tamTotal-7], "%s\n");
+						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
+						if((finPaquete)&&(posPayload==tamTotal-7))	 
+							printf("%s\n", (char*)payload);
 						else
 							printf("ERROR! los datos recibidos estan corruptos\n" );
 					}
