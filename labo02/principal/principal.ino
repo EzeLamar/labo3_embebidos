@@ -1,6 +1,7 @@
 #include "teclado.h"
 #include <Arduino.h>
 #include <LiquidCrystal.h>
+#include <Wire.h>
 
 //PARA LCD:
 #define LEDPIN 13
@@ -18,8 +19,47 @@
 #define BOTON_A5 8
 #define SIN_PULSAR -1
 
+
+//Para comunicacion
+
+//LO QUE RECIBO COMO SLAVE
+#define OBTENER_LUX '0'
+#define OBTENER_MAX '1'
+#define OBTENER_MIN '2'
+#define OBTENER_PROM '3'
+#define OBTENER_TODO '4'
+
+//LO QUE ENVIO COMO SLAVE
+
+#define RESPONDER_LUX '5'
+#define RESPONDER_MAX '6'
+#define RESPONDER_MIN '7'
+#define RESPONDER_PROM '8'
+#define RESPONDER_TODO '9'
+
+//defino tamaño de los paquetes de cada tipo
+
+#define TAMANO5 27
+#define TAMANO6 18
+#define TAMANO7 18
+#define TAMANO8 27
+#define TAMANO9 80
+
+#define tamanioMaxPaquete 80
+#define tamanioMinPaquete 7
+
+
+
 //CANT MAX DE MUESTRAS:
 #define tamanoArreglo 200
+
+
+//para comunicacion 
+
+char pedido; //bandera
+int i;
+
+uint8_t send_buf[tamanioMaxPaquete]; //arreglo que almacena la informacion a transmitir
 
 //valores de Estados para la variable "Estado"
 enum Estados { ESTADO_LA, ESTADO_AD, ESTADO_LP, ESTADO_LM};
@@ -294,7 +334,14 @@ void setup(){
   lcd.setCursor(0, 1);
   lcd.print("2do Cuatrimestre");
   delay(2000);
+  
+  //Comunicacion (inicializacion):
+  
+  Wire.begin(8);                // join i2c bus with address #8 
+  Wire.onReceive(receiveEvent); // register event
+  Wire.onRequest(requestEvent); // register event
 
+  //fin de Comunicacion
 
   //INICIALIZAMOS EN EL ESTADO "AL":
   Resetear();
@@ -463,4 +510,172 @@ ISR(TIMER2_COMPA_vect){
 		Estado=ESTADO_LA;
 		contador3s=0;	 
   	}  
+
 }
+// function that executes whenever data is requested by master
+// this function is registered as an event, see setup()
+void requestEvent() {
+	
+	//OBTENGO MIN Y MAX:
+	float maxActual=medicion[0];
+	float minActual=maxActual;
+	float actual;
+	
+	//Obtengo min y max
+	for(int i=1; i<tamanoArreglo; i++){
+					actual=medicion[i];
+				    if(minActual>actual)
+				    	minActual=actual;
+				    if(maxActual<actual)
+				    	maxActual=actual;
+				}
+	//obtengo promedio
+	float promedioLux=0;
+				//numMuestras=200;    //ESTO ES UN PARCHE PARA DSPS
+				for(int i=0; i<numMuestras; i++){
+					promedioLux+= medicion[i];
+				}
+				promedioLux= promedioLux/numMuestras;
+				//..fin calculo promedio.
+				
+	int tamanoTipo;
+	
+	switch(pedido){
+		
+		case '5':
+		{
+			
+			sprintf( (char*)send_buf, "%s<%i$%c$Valor lux: %f>", send_buf, TAMANO5, pedido, medicion[ultimaPos-1]);	//concatena tipo_msje y "$>".
+			tamanoTipo=TAMANO5;
+			
+		}
+		break;
+		
+		case '6':
+		{
+			sprintf( (char*)send_buf, "%s<%i$%c$MAX: %f>", send_buf, TAMANO6, pedido, maxActual);
+			tamanoTipo=TAMANO6;
+		}
+		break;
+		
+		case '7':
+		{
+			sprintf( (char*)send_buf, "%s<%i$%c$MIN: %f>", send_buf, TAMANO7, pedido, minActual);
+			tamanoTipo=TAMANO7;
+		}
+		break;
+		
+		case '8':
+		{
+			
+			sprintf( (char*)send_buf, "%s<%i$%c$PROMEDIO lux: %f>", send_buf, TAMANO8, pedido, promedioLux);
+			tamanoTipo=TAMANO8;
+		}
+		break;
+		
+		case '9':
+		{
+			sprintf( (char*)send_buf, "%s<%i$%c$Valor lux: %f MAX: %f MIN: %f PROMEDIO lux: %f>", send_buf, TAMANO9, pedido, medicion[ultimaPos-1],maxActual,minActual,promedioLux);
+			tamanoTipo=TAMANO9;
+		}
+		break;
+		
+	}
+	
+	
+	
+
+ uint8_t auxiliar[3];
+ uint8_t segundoMensaje[tamanoTipo-4];
+ 
+ switch(i){
+  case 0:
+  {
+    Wire.write(send_buf[0]); 
+    i++;
+  } break;
+   
+  case 1:
+  {
+   
+    for(int j=1; j<4;j++){
+      auxiliar[j-1]=send_buf[j];
+    }
+     Wire.write((char*) auxiliar);
+     i++;
+  }break;
+   
+   case 2:
+   {
+	 int k=4; //posicion donde me quede leyendo del buffer 7
+	 
+	 //voy a pasar el resto del mensaje a OTRO buffer para enviar al master 
+	 while(k<tamanoTipo && send_buf[k]!='>'){
+		 
+		 segundoMensaje[k-4]=send_buf[k];
+		 k++;
+	 }
+	 segundoMensaje[k-4]=send_buf[k];
+	 
+     Wire.write((char*) segundoMensaje);
+	 
+     i=0;
+	 
+	 }
+	 break;
+ } 
+	 
+	 
+}
+
+// function that executes whenever data is received from master
+// this function is registered as an event, see setup()
+void receiveEvent(int howMany) {
+  
+  char c;
+  char tipo;
+  if(Wire.read()=='<'){
+	  while (1 < Wire.available() && c!='$') { // loop through all but the last
+		c = Wire.read(); // receive byte as a character
+		Serial.print(c);         // print the character
+	  }
+	  tipo=Wire.read();
+	  
+	  switch(tipo){
+		case '0':
+		pedido=RESPONDER_LUX;
+		break;
+		
+		case '1':
+		pedido=RESPONDER_MIN;
+		break;
+		
+		case '2':
+		pedido=RESPONDER_MAX;
+		break;
+		
+		case '3':
+		pedido=RESPONDER_PROM;
+		break;
+		
+		case '4':
+		pedido=RESPONDER_TODO;
+		break;
+	  }
+	 
+	 while (1 < Wire.available()&& c!='>') { // loop through all but the last
+		c = Wire.read(); // receive byte as a character
+		Serial.print(c);         // print the character
+	  }
+	  
+	  //Serial.print(c); 
+	  
+	  int x = Wire.read();    // receive byte as an integer
+	  Serial.println();         // print the integer
+  }
+  else Serial.println("el mensaje se recibio con error");
+}
+
+
+
+
