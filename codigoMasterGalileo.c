@@ -92,7 +92,7 @@ int main() {
 				i2c->read(ultimaParte_buf,tamTotal-4);	//tamTotal-( "<" + "tamañoTotal" + "$" )=4 Bytes menos.
 				printf("el buffer completo que llega: %s\n\n", ultimaParte_buf);
 				//..fin lectura total.
-				if(ultimaParte_buf[1]=='$'){	//si el 5to Byte es el separador de Tipo..
+				if((ultimaParte_buf[1]=='$')&&(tamTotal<=tamanioMaxPaquete)){	//si el 5to Byte es el separador de Tipo..
 
 					//determino y convierto a int el tipo del paquete:
 
