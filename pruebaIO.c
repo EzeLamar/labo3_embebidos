@@ -48,7 +48,7 @@ int main(){
 	 	cout << "You entered: " << tipo_enviado << endl << endl;		//MUESTRO LO QUE LEI
 
 	 	sprintf( (char*)send_buf, "<07$%c$>", tipo_enviado);	//concatena tipo_msje y "$>".
-	 	cout << "Paquete Enviado: " << send_buf << endl << endl;
+	 	cout << "Paquete Enviado: " << send_buf << endl;
 
 	 	sprintf( (char*)receive_buf, "<27$5$Valor Actual: 100.00>" );
 	 	cout << "Paquete Recibido: " << receive_buf << endl << endl;
@@ -121,8 +121,11 @@ int main(){
 							int posPayload=0;
 							int encontreSeparador=0;
 							int contadorSeparadores=0;
+							char leido;
 							while(posBuffer<tamTotal-4 && !finPaquete){	//leo y agrego al arreglo hasta llegar al ">"
-								if(receive_buf[posBuffer]=='>'){
+								leido= receive_buf[posBuffer];
+
+								if(leido=='>'){
 									if(encontreSeparador){
 										payload[posPayload]='>';
 										encontreSeparador=0;
@@ -134,12 +137,17 @@ int main(){
 										finPaquete=1;
 								}
 								else {
-									if(receive_buf[posBuffer]=='/'){
+									if((!encontreSeparador)&&(leido=='/')){
 										encontreSeparador=1;
 										posBuffer++;
 									}
+
 									else {
-										payload[posPayload]=receive_buf[posBuffer];
+										if((encontreSeparador)&&((leido=='/')||(leido=='$'))){
+											contadorSeparadores++;
+											encontreSeparador=0;
+										}
+										payload[posPayload]=leido;
 										posPayload++;
 										posBuffer++;
 									}
@@ -149,10 +157,10 @@ int main(){
 							if((finPaquete)&&(posPayload+contadorSeparadores==tamTotal-7))	 
 								printf("%s\n", (char*)payload);
 							else
-								printf("ERROR! los datos recibidos estan corruptos\n" );
+								cout << "ERROR! los datos recibidos estan corruptos"<< endl << endl;
 						}
 						else
-							printf("ERROR! los datos recibidos no concuerdan con los solicitados\n" );
+							cout << "ERROR! los datos recibidos no concuerdan con los solicitados"<< endl << endl;	
 
 						//ENCIENDO LED DE CONTROL..
 	//    				sleep(1);

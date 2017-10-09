@@ -143,8 +143,11 @@ int main() {
 						int posPayload=0;
 						int encontreSeparador=0;
 						int contadorSeparadores=0;
+						char leido;
 						while(posBuffer<tamTotal-4 && !finPaquete){	//leo y agrego al arreglo hasta llegar al ">"
-							if(receive_buf[posBuffer]=='>'){
+							leido= receive_buf[posBuffer];
+
+							if(leido=='>'){
 								if(encontreSeparador){
 									payload[posPayload]='>';
 									encontreSeparador=0;
@@ -156,18 +159,22 @@ int main() {
 									finPaquete=1;
 							}
 							else {
-								if(receive_buf[posBuffer]=='/'){
+								if((!encontreSeparador)&&(leido=='/')){
 									encontreSeparador=1;
 									posBuffer++;
 								}
+
 								else {
-									payload[posPayload]=receive_buf[posBuffer];
+									if((encontreSeparador)&&((leido=='/')||(leido=='$'))){
+										contadorSeparadores++;
+										encontreSeparador=0;
+									}
+									payload[posPayload]=leido;
 									posPayload++;
 									posBuffer++;
 								}
 							}
-						}
-						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
+						}						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
 						if((finPaquete)&&(posPayload==tamTotal-7))	 
 							printf("%s\n", (char*)payload);
 						else
