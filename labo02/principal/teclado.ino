@@ -108,8 +108,8 @@ int teclado_init(adc_cfg * adcEx){
   adc_init(adcExterno);
   
   //seteamos los FLAGS para atrapar interrupciones de los pines A0, A2, A3, A4 y A5:   
-   PCICR |= (1 << PCIE1);     // set PCIE0 to enable PCMSK1 scan
-   PCMSK1|= (1<<PCINT11) | (1<<PCINT10); // | (1<<PCINT12)| (1<<PCINT13);// seteamos PCINT9 al 13 para atrapar interrupciones  
+  // PCICR |= (1 << PCIE1);     // set PCIE0 to enable PCMSK1 scan
+  // PCMSK1|= (1<<PCINT11) | (1<<PCINT10); // | (1<<PCINT12)| (1<<PCINT13);// seteamos PCINT9 al 13 para atrapar interrupciones  
 
    sei();
   return 1;

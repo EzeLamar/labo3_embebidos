@@ -36,6 +36,7 @@
 #define RESPONDER_MIN '7'
 #define RESPONDER_PROM '8'
 #define RESPONDER_TODO '9'
+#define ERROR 'E'
 
 //defino tamaño de los paquetes de cada tipo
 
@@ -316,7 +317,7 @@ int msje_apreto_boton(int tecla){
 
 void setup(){
   //inicializamos driver Lux
-  adcLux.canal=5;
+  adcLux.canal=3;
   adcLux.callback= ObtLux;
    
   //SETEAMOS LCD:
@@ -515,6 +516,7 @@ ISR(TIMER2_COMPA_vect){
 // function that executes whenever data is requested by master
 // this function is registered as an event, see setup()
 void requestEvent() {
+//en esta seccion se arman las tramas a ser transmitidas
 	
 	//OBTENGO MIN Y MAX:
 	float maxActual=medicion[0];
@@ -541,42 +543,99 @@ void requestEvent() {
 	int tamanoTipo;
 	
 	switch(pedido){
-		
+		//en esta seccion armo las tramas y guardo el tamanio de trama en la variable tamanoTipo--> luego es usado en el Segundomensaje 
 		case '5':
 		{
-			
-			sprintf( (char*)send_buf, "%s<%i$%c$Valor lux: %f>", send_buf, TAMANO5, pedido, medicion[ultimaPos-1]);	//concatena tipo_msje y "$>".
-			tamanoTipo=TAMANO5;
+			//Serial.println(medicion[ultimaPos-1]);
+        float numero= medicion[ultimaPos-1];
+        char arreglo[6];
+       sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
+       Serial.println(arreglo);
+       int cantCifras=strlen(arreglo);       
+      tamanoTipo=TAMANO5-6+cantCifras;
+
+       
+      
+			sprintf( (char*)send_buf, "<%i$%c$Valor actual: %s>",  tamanoTipo, pedido, arreglo);	//concatena tipo_msje y "$>".
+      Serial.println((char *) send_buf);
+			//tamanoTipo=TAMANO5;
 			
 		}
 		break;
 		
 		case '6':
 		{
-			sprintf( (char*)send_buf, "%s<%i$%c$MAX: %f>", send_buf, TAMANO6, pedido, maxActual);
-			tamanoTipo=TAMANO6;
+
+       float numero= maxActual;
+        char arreglo[6];
+       sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
+       Serial.println(arreglo);
+       int cantCifras=strlen(arreglo);       
+      tamanoTipo=TAMANO6-6+cantCifras;
+      
+              
+      
+      
+			sprintf( (char*)send_buf, "<%i$%c$MAX: %s>", tamanoTipo, pedido, arreglo);
+			//tamanoTipo=TAMANO6;
 		}
 		break;
 		
 		case '7':
 		{
-			sprintf( (char*)send_buf, "%s<%i$%c$MIN: %f>", send_buf, TAMANO7, pedido, minActual);
-			tamanoTipo=TAMANO7;
+
+      float numero= minActual;
+        char arreglo[6];
+       sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
+       Serial.println(arreglo);
+       int cantCifras=strlen(arreglo);       
+      tamanoTipo=TAMANO7-6+cantCifras;
+      
+			sprintf( (char*)send_buf, "<%i$%c$MIN: %s>", tamanoTipo, pedido, arreglo);
+			//tamanoTipo=TAMANO7;
 		}
 		break;
 		
 		case '8':
 		{
-			
-			sprintf( (char*)send_buf, "%s<%i$%c$PROMEDIO lux: %f>", send_buf, TAMANO8, pedido, promedioLux);
-			tamanoTipo=TAMANO8;
+
+      float numero= promedioLux;
+        char arreglo[6];
+       sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
+       Serial.println(arreglo);
+       int cantCifras=strlen(arreglo);       
+      tamanoTipo=TAMANO8-6+cantCifras;
+      
+			sprintf( (char*)send_buf, "<%i$%c$PROMEDIO lux: %s>", tamanoTipo, pedido, arreglo);
+			//tamanoTipo=TAMANO8;
 		}
 		break;
 		
 		case '9':
 		{
-			sprintf( (char*)send_buf, "%s<%i$%c$Valor lux: %f MAX: %f MIN: %f PROMEDIO lux: %f>", send_buf, TAMANO9, pedido, medicion[ultimaPos-1],maxActual,minActual,promedioLux);
-			tamanoTipo=TAMANO9;
+      float ACTlux= medicion[ultimaPos-1];
+      float mini= minActual;
+      float maxi=maxActual; 
+      float prom= promedioLux;
+        char arregloLux[6];
+        char arregloMin[6];
+        char arregloMax[6];
+        char arregloProm[6];
+       sprintf(arregloLux,"%d.%02d", (int) (ACTlux), (int)(ACTlux * 100) - (int) ACTlux * 100);
+       sprintf(arregloMin,"%d.%02d", (int) (mini), (int)(mini * 100) - (int) mini * 100);
+       sprintf(arregloMax,"%d.%02d", (int) (maxi), (int)(maxi * 100) - (int) maxi * 100);
+       sprintf(arregloProm,"%d.%02d", (int) (prom), (int)(prom * 100) - (int) prom * 100);
+       
+       
+       
+       int cantCifrasLux=strlen(arregloLux); 
+       int cantCifrasMin=strlen(arregloMin);    
+       int cantCifrasMax=strlen(arregloMax);
+       int cantCifrasProm=strlen(arregloProm);
+      tamanoTipo=TAMANO9-24+cantCifrasLux+cantCifrasMin+cantCifrasMax+cantCifrasProm;
+      
+			sprintf( (char*)send_buf, "<%i$%c$Valor actual: %s MAX: %s MIN: %s PROMEDIO lux: %s>", tamanoTipo, pedido,arregloLux, arregloMax, arregloMin, arregloProm);
+			//tamanoTipo=TAMANO9;
 		}
 		break;
 		
@@ -585,45 +644,45 @@ void requestEvent() {
 	
 	
 
- uint8_t auxiliar[3];
- uint8_t segundoMensaje[tamanoTipo-4];
- 
- switch(i){
-  case 0:
-  {
-    Wire.write(send_buf[0]); 
-    i++;
-  } break;
-   
-  case 1:
-  {
-   
-    for(int j=1; j<4;j++){
-      auxiliar[j-1]=send_buf[j];
-    }
-     Wire.write((char*) auxiliar);
-     i++;
-  }break;
-   
-   case 2:
-   {
-	 int k=4; //posicion donde me quede leyendo del buffer 7
+	 uint8_t auxiliar[3];
+	 uint8_t segundoMensaje[tamanoTipo-4];
 	 
-	 //voy a pasar el resto del mensaje a OTRO buffer para enviar al master 
-	 while(k<tamanoTipo && send_buf[k]!='>'){
-		 
-		 segundoMensaje[k-4]=send_buf[k];
-		 k++;
-	 }
-	 segundoMensaje[k-4]=send_buf[k];
-	 
-     Wire.write((char*) segundoMensaje);
-	 
-     i=0;
-	 
-	 }
-	 break;
- } 
+	 switch(i){
+		  case 0:
+		  {
+			Wire.write(send_buf[0]); 
+			i++;
+		  } break;
+		   
+		  case 1:
+		  {
+		   
+			for(int j=1; j<4;j++){
+			  auxiliar[j-1]=send_buf[j];
+			}
+			 Wire.write((char*) auxiliar);
+			 i++;
+		  }break;
+		   
+		   case 2:
+		   {
+			 int k=4; //posicion donde me quede leyendo del buffer 7
+			 
+			 //voy a pasar el resto del mensaje a OTRO buffer para enviar al master 
+			 while(k<tamanoTipo && send_buf[k]!='>'){
+				 
+				 segundoMensaje[k-4]=send_buf[k];
+				 k++;
+			 }
+			 segundoMensaje[k-4]=send_buf[k];
+			 
+			 Wire.write((char*) segundoMensaje);
+			 //FALTA MODELAR LA PARTE DEL MENSAJE RESPONDER_TODO CON UN SWITCH y una variable que funcione como bandera para saber que rafaga mandar
+			 i=0;
+			 
+			 }
+			 break;
+		} 
 	 
 	 
 }
@@ -631,15 +690,35 @@ void requestEvent() {
 // function that executes whenever data is received from master
 // this function is registered as an event, see setup()
 void receiveEvent(int howMany) {
-  
+  //en esta seccion se leen las tramas 
   char c;
   char tipo;
+  char arTamTotal[2]; //arreglo que contendra el tamanio de trama
+  int cont=0;//mantiene una cuenta del tamanio de trama y lo comparo al final con el tamanio almacenado arTamTotal
   if(Wire.read()=='<'){
+	  //sirve para llenar el arreglo que contendra el tamanio
+	  int l =0;
+	  cont++;
 	  while (1 < Wire.available() && c!='$') { // loop through all but the last
 		c = Wire.read(); // receive byte as a character
+		//guardo en s el tamanio total
+		if(c!='$')
+		arTamTotal[l]=c;
+	    l++;
+		cont++;
 		Serial.print(c);         // print the character
 	  }
+	  
+	  //convierto el valor leido en un entero (TamañoTotal):
+		    	int tamTotal=0;
+				int digito;
+				for(int i=0; i<2; i++){
+					digito=  arTamTotal[i]- '0';
+					tamTotal= tamTotal*10 + digito;
+				}
+	  
 	  tipo=Wire.read();
+	  cont++;
 	  
 	  switch(tipo){
 		case '0':
@@ -647,11 +726,11 @@ void receiveEvent(int howMany) {
 		break;
 		
 		case '1':
-		pedido=RESPONDER_MIN;
+		pedido=RESPONDER_MAX;
 		break;
 		
 		case '2':
-		pedido=RESPONDER_MAX;
+		pedido=RESPONDER_MIN;
 		break;
 		
 		case '3':
@@ -661,13 +740,17 @@ void receiveEvent(int howMany) {
 		case '4':
 		pedido=RESPONDER_TODO;
 		break;
+		
 	  }
 	 
 	 while (1 < Wire.available()&& c!='>') { // loop through all but the last
 		c = Wire.read(); // receive byte as a character
 		Serial.print(c);         // print the character
+		cont++;
 	  }
-	  
+	  if(tamTotal!=cont)
+		  Serial.println("datos corruptos");
+		  
 	  //Serial.print(c); 
 	  
 	  int x = Wire.read();    // receive byte as an integer
