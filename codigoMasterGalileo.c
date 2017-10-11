@@ -177,14 +177,37 @@ int main() {
 						if((finPaquete)&&(posPayload==tamTotal-7))
 							if(tipo_enviado==OBTENER_TODO){
 								int opcion=0;
-								for(int i=0; i<posPayload; i++)
+								int posInicioDato=0;
+								while(opcion<4){
+									//ESCRIBO EL CARTEL ANTES DEL DATO OBTENIDO:
+									switch(opcion){
+										case 0:{
+											printf("Lux Actual: ");
+										}break;
+
+										case 1:{
+											printf("MIN: ");
+										}break;
+
+										case 2:{
+											printf("MAN: ");
+										}break;
+
+										case 3:{
+											printf("Promedio lux: ");
+										}break;
+									}
+								}
+								//ESCRIBO EL DATO RECIBIDO:
+								int finDato=0;
+								for(int i=posInicioDato; (i<posPayload)&&(!finDato) i++)
 									if(payload[i]=='$'){
-										printf("  [%i] \n",opcion);
+										printf("\n");
+										finDato=1;
 										opcion++;
 									}
 									else
 										printf("%c", payload[i]);
-								printf("\n");
 							}
 							else printf("%s\n", (char*)payload );
 
