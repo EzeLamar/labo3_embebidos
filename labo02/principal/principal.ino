@@ -44,7 +44,7 @@
 #define TAMANO6 18
 #define TAMANO7 18
 #define TAMANO8 27
-#define TAMANO9 80
+#define TAMANO9 34
 
 #define tamanioMaxPaquete 80
 #define tamanioMinPaquete 7
@@ -634,7 +634,7 @@ void requestEvent() {
        int cantCifrasProm=strlen(arregloProm);
       tamanoTipo=TAMANO9-24+cantCifrasLux+cantCifrasMin+cantCifrasMax+cantCifrasProm;
       
-			sprintf( (char*)send_buf, "<%i$%c$Valor actual: %s MAX: %s MIN: %s PROMEDIO lux: %s>", tamanoTipo, pedido,arregloLux, arregloMax, arregloMin, arregloProm);
+			sprintf( (char*)send_buf, "<%i$%c$%s$%s$%s$%s>", tamanoTipo, pedido,arregloLux, arregloMax, arregloMin, arregloProm);
 			//tamanoTipo=TAMANO9;
 		}
 		break;
