@@ -16,7 +16,14 @@
 #define RESPONDER_MIN '7'
 #define RESPONDER_PROM '8'
 #define RESPONDER_TODO '9'
-#define ERROR 'E'
+
+#define TECLA_UP'A'
+#define TECLA_DOWN'B'
+#define TECLA_LEFT'C'
+#define TECLA_RIGHT'D'
+#define BOTON_A2'E'
+#define BOTON_OK 'O'
+
 
 
 #define tamanioMaxPaquete 80
@@ -33,7 +40,7 @@ int main() {
     i2c->address(8); //LE INDICA QUE EL ESCLAVO A ESCUCHAR ESTA EN LA DIR 8.
 
     //inicializo el tipo y el arreglo que almacenara la respuesta:
-	uint8_t receive_buf[tamanioMaxPaquete];		//arreglo que almacena la respuesta.
+	uint8_t receive_buf[4];		//arreglo que almacena SOLO los primeros 4 caracteres del paquete
 	uint8_t send_buf[tamanioMinPaquete];		//arreglo que almacena lo recibido
     //..fin inializar variables paquete.
 
@@ -44,9 +51,10 @@ int main() {
     	//solicito al usuario el tipo msje que quiero enviar: (solo permito OBTENER_...):
 
 		while (!opcionValida) {
-			printf("ingrese una letra valida: ");
+			printf("ingrese una opcion valida: ");
 			scanf(" %c",&tipo_enviado);
-			if(tipo_enviado>=OBTENER_LUX && tipo_enviado<=OBTENER_TODO)
+			//VERIFICO OPCION VALIDA:
+			if((tipo_enviado>=OBTENER_LUX && tipo_enviado<=OBTENER_TODO)||((tipo_enviado>=TECLA_UP)&&(tipo_enviado<=BOTON_A2)))
 				opcionValida=1;
 			else
 				printf("opcion invalida, intente de nuevo\n");
