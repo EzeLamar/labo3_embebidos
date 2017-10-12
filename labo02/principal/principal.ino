@@ -40,13 +40,13 @@
 
 //defino tamaño de los paquetes de cada tipo
 
-#define TAMANO5 27
-#define TAMANO6 18
-#define TAMANO7 18
-#define TAMANO8 27
-#define TAMANO9 34
+#define TAMANO5 21
+#define TAMANO6 12
+#define TAMANO7 12
+#define TAMANO8 21
+#define TAMANO9 10
 
-#define tamanioMaxPaquete 80
+#define tamanioMaxPaquete 34
 #define tamanioMinPaquete 7
 
 
@@ -552,7 +552,7 @@ void requestEvent() {
        sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
        Serial.println(arreglo);
        int cantCifras=strlen(arreglo);       
-      tamanoTipo=TAMANO5-6+cantCifras;
+      tamanoTipo=TAMANO5+cantCifras;
 
        
       
@@ -571,7 +571,7 @@ void requestEvent() {
        sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
        Serial.println(arreglo);
        int cantCifras=strlen(arreglo);       
-      tamanoTipo=TAMANO6-6+cantCifras;
+      tamanoTipo=TAMANO6+cantCifras;
       
               
       
@@ -589,7 +589,7 @@ void requestEvent() {
        sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
        Serial.println(arreglo);
        int cantCifras=strlen(arreglo);       
-      tamanoTipo=TAMANO7-6+cantCifras;
+      tamanoTipo=TAMANO7+cantCifras;
       
 			sprintf( (char*)send_buf, "<%i$%c$MIN: %s>", tamanoTipo, pedido, arreglo);
 			//tamanoTipo=TAMANO7;
@@ -604,7 +604,7 @@ void requestEvent() {
        sprintf(arreglo,"%d.%02d", (int) (numero), (int)(numero * 100) - (int) numero * 100);
        Serial.println(arreglo);
        int cantCifras=strlen(arreglo);       
-      tamanoTipo=TAMANO8-6+cantCifras;
+      tamanoTipo=TAMANO8+cantCifras;
       
 			sprintf( (char*)send_buf, "<%i$%c$PROMEDIO lux: %s>", tamanoTipo, pedido, arreglo);
 			//tamanoTipo=TAMANO8;
@@ -632,7 +632,7 @@ void requestEvent() {
        int cantCifrasMin=strlen(arregloMin);    
        int cantCifrasMax=strlen(arregloMax);
        int cantCifrasProm=strlen(arregloProm);
-      tamanoTipo=TAMANO9-24+cantCifrasLux+cantCifrasMin+cantCifrasMax+cantCifrasProm;
+      tamanoTipo=TAMANO9+cantCifrasLux+cantCifrasMin+cantCifrasMax+cantCifrasProm;
       
 			sprintf( (char*)send_buf, "<%i$%c$%s$%s$%s$%s>", tamanoTipo, pedido,arregloLux, arregloMax, arregloMin, arregloProm);
 			//tamanoTipo=TAMANO9;
