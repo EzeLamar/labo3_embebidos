@@ -22,7 +22,7 @@
 #define TECLA_LEFT'C'
 #define TECLA_RIGHT'D'
 #define BOTON_A2'E'
-#define BOTON_OK 'O'
+#define APRETO_BOTON 'O'
 
 
 
@@ -137,8 +137,14 @@ int main() {
 						default: {		//en caso de recibir un paquete ERROR!
 							tipoCorrecto=0;
 						}
-
 					}//fin switch.
+					
+					//en caso que se apreto un boton..
+					if((tipo_enviado>= TECLA_UP)&&(tipo_enviado<=BOTON_A2))
+						if(tipo_recibido==APRETO_BOTON)
+							printf("Se apreto el boton: %c\n", tipo_enviado);
+
+					
 
 					if(tipoCorrecto){	//si se corresponde lo pedido con lo recibido:
 						printf("lo que voy a recortar: %s\n\n",ultimaParte_buf);
