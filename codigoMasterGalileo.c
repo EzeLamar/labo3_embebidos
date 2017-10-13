@@ -139,7 +139,7 @@ int main() {
 						}
 					}//fin switch.
 					
-					//en caso que se apreto un boton..
+					//que hace si contestan al apretar un boton...
 					if((tipo_enviado>= TECLA_UP)&&(tipo_enviado<=BOTON_A2))
 						if(tipo_recibido==APRETO_BOTON){
 							printf("Se apreto el boton: ");
@@ -163,12 +163,11 @@ int main() {
 								case BOTON_A2:{
 									printf("A2\n");
 								}break;
-								
 							}
 						}
 
 					
-
+					//que hace si responden el pedido de OBTENER...
 					if(tipoCorrecto){	//si se corresponde lo pedido con lo recibido:
 						printf("lo que voy a recortar: %s\n\n",ultimaParte_buf);
 						uint8_t payload[tamTotal-7+1];		//TamañoTotal-7 Bytes
@@ -211,6 +210,7 @@ int main() {
 								}
 							}
 						}	
+						
 						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
 						if((finPaquete)&&(posPayload==tamTotal-7))
 							if(tipo_enviado==OBTENER_TODO){
