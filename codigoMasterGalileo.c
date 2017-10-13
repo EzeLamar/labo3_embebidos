@@ -141,8 +141,31 @@ int main() {
 					
 					//en caso que se apreto un boton..
 					if((tipo_enviado>= TECLA_UP)&&(tipo_enviado<=BOTON_A2))
-						if(tipo_recibido==APRETO_BOTON)
-							printf("Se apreto el boton: %c\n", tipo_enviado);
+						if(tipo_recibido==APRETO_BOTON){
+							printf("Se apreto el boton: ");
+							switch(tipo_enviado){
+								case TECLA_UP:{
+									printf("UP\n");
+								}break;
+
+								case TECLA_DOWN:{
+									printf("DOWN\n");
+								}break;
+								
+								case TECLA_LEFT:{
+									printf("LEFT\n");
+								}break;
+								
+								case TECLA_RIGHT:{
+									printf("RIGHT\n");
+								}break;
+
+								case BOTON_A2:{
+									printf("A2\n");
+								}break;
+								
+							}
+						}
 
 					
 
@@ -187,7 +210,8 @@ int main() {
 									posBuffer++;
 								}
 							}
-						}						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
+						}	
+						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
 						if((finPaquete)&&(posPayload==tamTotal-7))
 							if(tipo_enviado==OBTENER_TODO){
 								int opcion=0;
