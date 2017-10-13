@@ -16,7 +16,14 @@
 #define RESPONDER_MIN '7'
 #define RESPONDER_PROM '8'
 #define RESPONDER_TODO '9'
-#define ERROR 'E'
+
+#define TECLA_UP'A'
+#define TECLA_DOWN'B'
+#define TECLA_LEFT'C'
+#define TECLA_RIGHT'D'
+#define BOTON_A2'E'
+#define APRETO_BOTON 'O'
+
 
 
 #define tamanioMaxPaquete 80
@@ -33,7 +40,7 @@ int main() {
     i2c->address(8); //LE INDICA QUE EL ESCLAVO A ESCUCHAR ESTA EN LA DIR 8.
 
     //inicializo el tipo y el arreglo que almacenara la respuesta:
-	uint8_t receive_buf[tamanioMaxPaquete];		//arreglo que almacena la respuesta.
+	uint8_t receive_buf[4];		//arreglo que almacena SOLO los primeros 4 caracteres del paquete
 	uint8_t send_buf[tamanioMinPaquete];		//arreglo que almacena lo recibido
     //..fin inializar variables paquete.
 
@@ -44,9 +51,10 @@ int main() {
     	//solicito al usuario el tipo msje que quiero enviar: (solo permito OBTENER_...):
 
 		while (!opcionValida) {
-			printf("ingrese una letra valida: ");
+			printf("ingrese una opcion valida: ");
 			scanf(" %c",&tipo_enviado);
-			if(tipo_enviado>=OBTENER_LUX && tipo_enviado<=OBTENER_TODO)
+			//VERIFICO OPCION VALIDA:
+			if((tipo_enviado>=OBTENER_LUX && tipo_enviado<=OBTENER_TODO)||((tipo_enviado>=TECLA_UP)&&(tipo_enviado<=BOTON_A2)))
 				opcionValida=1;
 			else
 				printf("opcion invalida, intente de nuevo\n");
@@ -57,7 +65,7 @@ int main() {
 
  		//ARMO el paquete según lo solicitado por el usuario:
  		sprintf( (char*)send_buf, "<07$%c$>", tipo_enviado);	//genera paquete OBTENER...
- 		printf("Paquete: %s\n\n", send_buf);		//MUESTRO PAQUETE EN CONSOLA..
+ //		printf("Paquete: %s\n\n", send_buf);		//MUESTRO PAQUETE EN CONSOLA..
  		//..fin armar paquete.
 
     	fflush(stdout);		//limpio buffer..
@@ -85,12 +93,13 @@ int main() {
 					digito=  receive_buf[i]- '0';	//obtengo int correspondiente al char.
 					tamTotal= tamTotal*10 + digito;
 				}
-				printf("el tamaño es: %d", tamTotal);
+//				printf("el tamaño es: %d", tamTotal);
 				//..fin conversion.
-				uint8_t ultimaParte_buf[tamTotal-4];
+				uint8_t ultimaParte_buf[30];
 				//conociendo el tamaño total, leemos del bus el resto de los Bytes:
-				i2c->read(ultimaParte_buf,tamTotal-4);	//tamTotal-( "<" + "tamañoTotal" + "$" )=4 Bytes menos.
-				printf("el buffer completo que llega: %s\n\n", ultimaParte_buf);
+				i2c->read(ultimaParte_buf,4);	//tamTotal-( "<" + "tamañoTotal" + "$" )=4 Bytes menos.
+
+//				printf("el buffer completo que llega: %s\n\n", ultimaParte_buf);
 				//..fin lectura total.
 				if((ultimaParte_buf[1]=='$')&&(tamTotal<=tamanioMaxPaquete)){	//si el 5to Byte es el separador de Tipo..
 
@@ -128,14 +137,44 @@ int main() {
 						default: {		//en caso de recibir un paquete ERROR!
 							tipoCorrecto=0;
 						}
-
 					}//fin switch.
+//					printf("el tipo recibido es: %c\n", tipo_recibido);
+					//LEO EL PAYLOAD..
+					i2c->read(ultimaParte_buf,29);
+					//que hace si contestan al apretar un boton...
+					if((tipo_enviado>= TECLA_UP)&&(tipo_enviado<=BOTON_A2))
+						if(tipo_recibido==APRETO_BOTON){
+							printf("Se apreto el boton: ");
+							switch(tipo_enviado){
+								case TECLA_UP:{
+									printf("UP\n");
+								}break;
 
+								case TECLA_DOWN:{
+									printf("DOWN\n");
+								}break;
+
+								case TECLA_LEFT:{
+									printf("LEFT\n");
+								}break;
+
+								case TECLA_RIGHT:{
+									printf("RIGHT\n");
+								}break;
+
+								case BOTON_A2:{
+									printf("A2\n");
+								}break;
+							}
+						}
+
+
+					//que hace si responden el pedido de OBTENER...
 					if(tipoCorrecto){	//si se corresponde lo pedido con lo recibido:
-						printf("lo que voy a recortar: %s\n\n",ultimaParte_buf);
+//						printf("lo que voy a recortar: %s\n\n",ultimaParte_buf);
 						uint8_t payload[tamTotal-7+1];		//TamañoTotal-7 Bytes
 						int finPaquete=0;	//encontre el simbolo de fin de paquete ">"
-						int posBuffer=2;
+						int posBuffer=0;
 						int posPayload=0;
 						int encontreSeparador=0;
 						int contadorSeparadores=0;
@@ -172,9 +211,53 @@ int main() {
 									posBuffer++;
 								}
 							}
-						}						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
-						if((finPaquete)&&(posPayload==tamTotal-7))
-							printf("%s\n", (char*)payload );
+						}
+
+						//si llego el terminador del paquete y recibi todos los datos (según tamTotal)..
+						if((finPaquete))
+							if(tipo_enviado==OBTENER_TODO){
+								int opcion=0;
+								int posInicioDato=0;
+								int finDato=0;
+								while((opcion<4)&&(posInicioDato<posPayload)){
+									//ESCRIBO EL CARTEL ANTES DEL DATO OBTENIDO:
+									switch(opcion){
+										case 0:{
+											printf("Lux Actual: ");
+										}break;
+
+										case 1:{
+											printf("MAX: ");
+										}break;
+
+										case 2:{
+											printf("MIN: ");
+										}break;
+
+										case 3:{
+											printf("Promedio lux: ");
+										}break;
+									}
+
+									//ESCRIBO EL DATO RECIBIDO:
+									finDato=0;
+									for(int i=posInicioDato; (i<posPayload)&&(!finDato); i++){
+										if(payload[i]=='$'){
+											printf("\n");
+											finDato=1;
+											posInicioDato=i+1;
+
+										}
+										else
+											printf("%c", payload[i]);
+									}
+									opcion++;
+								}
+								printf("\n");
+							}
+							else printf("%s\n", (char*)payload );
+
+
 						else{
 							printf("ERROR! los datos recibidos estan corruptos\n" );
 						}
