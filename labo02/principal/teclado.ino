@@ -40,9 +40,6 @@ int newKey=-1;
 int oldKey=-1;
 int botonApretado=0;
 
-int canalAnterior;
-int  (*callbackAnterior)(int);
-
 //para lcd 
 int newKey2=-1;
 int oldKey2=-1;
@@ -62,11 +59,9 @@ int get_key(unsigned int input)
     return k;
 }
 
-//funcion callback adc_cfg:
-int obtenerValorDigital(int input){
-  
-   newKey2=get_key(input);
-   if(newKey2 != oldKey2){     
+void sensarBoton(int boton){
+  newKey2=boton;
+  if(newKey2 != oldKey2){     
             
       if (!botonApretado && newKey2>=0 && oldKey2==-1){
         teclas[newKey2].callbackDOWN();
@@ -79,10 +74,12 @@ int obtenerValorDigital(int input){
           oldKey2 = newKey2;
       }
   }
-  adcExterno->canal=canalAnterior;
-  adcExterno->callback=callbackAnterior;
-  adc_init(adcExterno);
-  
+}
+
+//funcion callback adc_cfg:
+int obtenerValorDigital(int input){
+  int boton=get_key(input);
+  sensarBoton(boton);
   return 1;
 }
 
@@ -97,12 +94,10 @@ void key_up_callback(void (*handler)(), int tecla){
 
 int teclado_init(adc_cfg * adcEx){
   //inicializamos variables:
-  adcExterno=adcEx;
   cli(); 
   pinInterrupcion=-1;
   //inicializamos ADC_cfg:
-  canalAnterior=adcExterno->canal;
-  callbackAnterior=adcExterno->callback;
+  adcExterno =adcEx;
   adcExterno->canal = 0;
   adcExterno->callback= obtenerValorDigital;
   adc_init(adcExterno);
@@ -114,6 +109,12 @@ int teclado_init(adc_cfg * adcEx){
    sei();
   return 1;
   }
+
+int teclado_virtual(int boton){
+  tecla[boton].callbackDOWN();
+  tecla[boton].callbackUP();
+  return 1;
+}
 
 void teclado_loop(){
     
@@ -157,6 +158,7 @@ void teclado_loop(){
   }
   
 }
+
 
 
 ISR (PCINT1_vect){

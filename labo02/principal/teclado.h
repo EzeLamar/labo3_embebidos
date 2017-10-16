@@ -16,6 +16,9 @@ void key_up_callback(void (*handler)(), int tecla);
 //int teclado_init(teclado_cfg *tec);
 int teclado_init(adc_cfg *adc);
 
+//funcion que ejecuta el callback del teclado pero manualmente..
+int teclado_virtual(int tecla);
+
 //ejecuta las funciones de callback corespondientes solo cuando se obtuvo el valor.
 void teclado_loop();
 #endif

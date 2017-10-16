@@ -22,6 +22,12 @@
 
 
 //Para comunicacion
+#define TECLA_UP'A'
+#define TECLA_DOWN'B'
+#define TECLA_LEFT'C'
+#define TECLA_RIGHT'D'
+#define BOTON_A2'E'
+#define APRETO_BOTON 'O'
 
 //LO QUE RECIBO COMO SLAVE
 #define OBTENER_LUX '0'
@@ -91,6 +97,38 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
 //DRIVER ADC PARA SENSOR LUX
 adc_cfg adcLux;
+{right, up,down, left, select, botonA2, botonA3, botonA4, botonA5 };
+int botonVirtual(char tipo){
+  int boton=-1;
+  switch(tipo){
+    case TECLA_UP:{
+      boton=1;
+    }break;
+
+    case TECLA_DOWN:{
+      boton=2;
+    }break;
+
+    case TECLA_LEFT:{
+      boton=3;
+    }break;
+
+    case TECLA_RIGHT:{
+      boton=0;
+    }break;
+
+    case TECLA_SELECT:{
+      boton=4;
+    }break;
+
+    case BOTON_A2:{
+      boton=5;
+    }break;
+  }
+  if(boton!=-1)
+    teclado_virtual(boton);
+  return boton;
+}
 
 float multiMap(float val, float * _in, float * _out, uint8_t size) {
 
@@ -118,8 +156,6 @@ float multiMap(float val, float * _in, float * _out, uint8_t size) {
 //CALLBACK DRIVER LUX:
 int ObtLux(int valorDigital) {
 
-  //almaceno el valor en el arreglo:
-  if (flagObtenerLux) {
     //convierto el valor digital a lux:
     float R =  (5.0f * 10000.0f) / (0.0049f * (float)valorDigital) - 10000.0f;
     float interLux;
@@ -135,12 +171,11 @@ int ObtLux(int valorDigital) {
     if (numMuestras < tamanoArreglo)
       numMuestras++;
     flagObtenerLux = 0;
-  }
 
   //si no se esta utilizando el driver para convertir Lux..
   //al terminar de convertir chequea si se apreto algun boton.
   teclado_init(&adcLux);
-  adc_init(&adcLux);
+  
   return 1;
 }
 
@@ -317,9 +352,7 @@ int msje_apreto_boton(int tecla) {
 
 
 void setup() {
-  //inicializamos driver Lux
-  adcLux.canal = 3;
-  adcLux.callback = ObtLux;
+  teclado_init(&adcLux);
 
   //SETEAMOS LCD:
   pinMode(LCDCANAL, OUTPUT);
@@ -502,7 +535,11 @@ ISR(TIMER2_COMPA_vect) {
   if (contadorOVERFLOW == 6) {
     contadorOVERFLOW = 0;
     contador3s++;
-    flagObtenerLux = 1;
+    //seteamos para obtener un Lux y almacenarlo..
+    //inicializamos driver Lux
+    adcLux.canal = 3;
+    adcLux.callback = ObtLux;
+    adc_init(&adcLux);
   }
   //SI APRETO UN BOTON ANTES DE LOS 3 SEGUNDOS
   if (seApreto)
