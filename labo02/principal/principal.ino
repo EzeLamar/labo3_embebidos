@@ -97,37 +97,8 @@ LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
 
 //DRIVER ADC PARA SENSOR LUX
 adc_cfg adcLux;
-{right, up,down, left, select, botonA2, botonA3, botonA4, botonA5 };
 int botonVirtual(char tipo){
-  int boton=-1;
-  switch(tipo){
-    case TECLA_UP:{
-      boton=1;
-    }break;
 
-    case TECLA_DOWN:{
-      boton=2;
-    }break;
-
-    case TECLA_LEFT:{
-      boton=3;
-    }break;
-
-    case TECLA_RIGHT:{
-      boton=0;
-    }break;
-
-    case TECLA_SELECT:{
-      boton=4;
-    }break;
-
-    case BOTON_A2:{
-      boton=5;
-    }break;
-  }
-  if(boton!=-1)
-    teclado_virtual(boton);
-  return boton;
 }
 
 float multiMap(float val, float * _in, float * _out, uint8_t size) {
@@ -678,7 +649,14 @@ void requestEvent() {
         //      Serial.println((char*)send_buf);
         //tamanoTipo=TAMANO9;
       }break;
+    case 'O':
+    {
+      //respuesta a la presion de una tecla
+       tamanoTipo=6; //tamaño del mensaje
+       sprintf((char*)send_buf,"<%i$%c$>", tamanoTipo, pedido);
 
+        
+      }break;
   }
 
 
@@ -734,7 +712,7 @@ void requestEvent() {
 
         Serial.println((char*)segundoMensaje);
         Wire.write((char*) segundoMensaje,tamanoTipo-6);
-        //FALTA MODELAR LA PARTE DEL MENSAJE RESPONDER_TODO CON UN SWITCH y una variable que funcione como bandera para saber que rafaga mandar
+
         i = 0;
       }
       break;
@@ -794,7 +772,50 @@ void receiveEvent(int howMany) {
       case '4':
         pedido = RESPONDER_TODO;
         break;
+      case 'A': 
+      case 'B':
+      case 'C':
+      case 'D':
+      case 'E':
+      {
+        //identifico que se apreto un boton
+        pedido=APRETO_BOTON;
 
+        //la siguiente porcion de codigo se utiliza para reconocer que tecla se apreto y hacer el mapeo a teclado driver
+         int boton=-1;
+          switch(pedido){
+            case TECLA_UP:{
+              boton=1;
+            }break;
+        
+            case TECLA_DOWN:{
+              boton=2;
+            }break;
+        
+            case TECLA_LEFT:{
+              boton=3;
+            }break;
+        
+            case TECLA_RIGHT:{
+              boton=0;
+            }break;
+        
+            case TECLA_SELECT:{
+              boton=4;
+            }break;
+        
+            case BOTON_A2:{
+              boton=5;
+            }break;
+          }
+          if(boton!=-1)
+            teclado_virtual(boton);
+          //hasta aca mapeo a teclado driver
+
+          //funcion de teclado driver que permite comunicarle que tecla se apreto 
+          teclado_virtual(boton);
+        
+        }break;
     }
 
     while (1 < Wire.available() && c != '>') { // loop through all but the last

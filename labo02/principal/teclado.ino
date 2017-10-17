@@ -111,8 +111,8 @@ int teclado_init(adc_cfg * adcEx){
   }
 
 int teclado_virtual(int boton){
-  tecla[boton].callbackDOWN();
-  tecla[boton].callbackUP();
+  teclas[boton].callbackDOWN();
+  teclas[boton].callbackUP();
   return 1;
 }
 
