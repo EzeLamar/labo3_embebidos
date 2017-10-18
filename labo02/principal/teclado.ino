@@ -59,12 +59,16 @@ int get_key(unsigned int input)
     return k;
 }
 
-void sensarBoton(int boton){
-  newKey2=boton;
+//funcion callback adc_cfg:
+int obtenerValorDigital(int input){
+  newKey2=get_key(input);
+  
   if(newKey2 != oldKey2){     
             
       if (!botonApretado && newKey2>=0 && oldKey2==-1){
+        Serial.println(newKey2);
         teclas[newKey2].callbackDOWN();
+        
         botonApretado=1;
         oldKey2 = newKey2;
       }
@@ -74,12 +78,6 @@ void sensarBoton(int boton){
           oldKey2 = newKey2;
       }
   }
-}
-
-//funcion callback adc_cfg:
-int obtenerValorDigital(int input){
-  int boton=get_key(input);
-  sensarBoton(boton);
   return 1;
 }
 
@@ -111,6 +109,7 @@ int teclado_init(adc_cfg * adcEx){
   }
 
 int teclado_virtual(int boton){
+  Serial.println("entre");
   teclas[boton].callbackDOWN();
   teclas[boton].callbackUP();
   return 1;

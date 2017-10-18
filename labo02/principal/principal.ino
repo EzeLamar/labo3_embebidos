@@ -22,12 +22,12 @@
 
 
 //Para comunicacion
-#define TECLA_UP'A'
-#define TECLA_DOWN'B'
-#define TECLA_LEFT'C'
-#define TECLA_RIGHT'D'
-#define BOTON_A2'E'
-#define APRETO_BOTON 'O'
+#define TECLA_UPv 'A'
+#define TECLA_DOWNv 'B'
+#define TECLA_LEFTv 'C'
+#define TECLA_RIGHTv 'D'
+#define BOTON_A2v 'E'
+#define APRETO_BOTONv 'O'
 
 //LO QUE RECIBO COMO SLAVE
 #define OBTENER_LUX '0'
@@ -43,7 +43,7 @@
 #define RESPONDER_MIN '7'
 #define RESPONDER_PROM '8'
 #define RESPONDER_TODO '9'
-#define ERROR 'E'
+//#define ERROR 'E'
 
 //defino tamaño de los paquetes de cada tipo
 
@@ -84,10 +84,10 @@ int ultimaPos;
 
 
 //Variables para ISR Timer:
-volatile int flagObtenerLux;
 volatile int contadorOVERFLOW;
 volatile int contador3s;
 volatile int seApreto;
+volatile int obtuveValor=0;
 
 
 //para LCD
@@ -141,7 +141,6 @@ int ObtLux(int valorDigital) {
       ultimaPos = 0;
     if (numMuestras < tamanoArreglo)
       numMuestras++;
-    flagObtenerLux = 0;
 
   //si no se esta utilizando el driver para convertir Lux..
   //al terminar de convertir chequea si se apreto algun boton.
@@ -176,13 +175,10 @@ void aprete_UP() {
   Serial.println("aprete UP");
 
   //si nos encotramos en el estado AD
-  if (Estado == ESTADO_AD) {
     if (porcentajeIluminacion < 100) {
       porcentajeIluminacion += 20;
       cambiarIluminacion(porcentajeIluminacion);
     }
-
-  }
   seApreto = 1;
 }
 
@@ -323,7 +319,10 @@ int msje_apreto_boton(int tecla) {
 
 
 void setup() {
-  teclado_init(&adcLux);
+
+  adcLux.canal = 3;
+  adcLux.callback = ObtLux;
+  adc_init(&adcLux);
 
   //SETEAMOS LCD:
   pinMode(LCDCANAL, OUTPUT);
@@ -346,7 +345,6 @@ void setup() {
   Wire.begin(8);                // join i2c bus with address #8
   Wire.onReceive(receiveEvent); // register event
   Wire.onRequest(requestEvent); // register event
-  Serial.println("arrancamo...");
 
   //fin de Comunicacion
 
@@ -354,7 +352,7 @@ void setup() {
   Resetear();
 
   //digo cual es la tecla asociada a que funcion de up y down
-  key_up_callback(&solte_UP, TECLA_UP);
+  key_up_callback( solte_UP, TECLA_UP);
   key_up_callback( solte_DOWN, TECLA_DOWN);
   key_up_callback( solte_LEFT, TECLA_LEFT);
   key_up_callback( solte_RIGHT, TECLA_RIGHT);
@@ -378,7 +376,6 @@ void setup() {
   //INICIALIZAMOS EL CLOCK PARA SENSAR VALORES:
   cli();          // disable global interrupts
 
-  flagObtenerLux = 0;	// SETEAMOS FLAG EN 0
   seApreto = 0;
   contador3s = 0;
 
@@ -400,15 +397,19 @@ void setup() {
   Serial.begin(9600);
 
   //INICIALIZO DRIVER DE LUX (QUEDA CONFIGURADO ADC PARA OBTENER VALORES LUX):
-  adc_init(&adcLux);  //PISO adc_cfg DEL TECLADO POR EL DEL SENSOR EN EL DRIVER ADC
+//  adc_init(&adcLux);  //PISO adc_cfg DEL TECLADO POR EL DEL SENSOR EN EL DRIVER ADC
 }
 
 void loop() {
   //ARRANCAMOS LOOP DE DRIVER DE TECLADO:
   teclado_loop();
 
-  if (flagObtenerLux) { //limpio la pantalla segun la frecuencia con la que obtienen nuevos valores.
-
+  if (obtuveValor) { //limpio la pantalla segun la frecuencia con la que obtienen nuevos valores.
+    adcLux.canal = 3;
+    adcLux.callback = ObtLux;
+    adc_init(&adcLux);
+    obtuveValor=0;
+    
     switch (Estado) {
 
       case ESTADO_LA: {
@@ -508,9 +509,7 @@ ISR(TIMER2_COMPA_vect) {
     contador3s++;
     //seteamos para obtener un Lux y almacenarlo..
     //inicializamos driver Lux
-    adcLux.canal = 3;
-    adcLux.callback = ObtLux;
-    adc_init(&adcLux);
+    obtuveValor=1;
   }
   //SI APRETO UN BOTON ANTES DE LOS 3 SEGUNDOS
   if (seApreto)
@@ -649,12 +648,12 @@ void requestEvent() {
         //      Serial.println((char*)send_buf);
         //tamanoTipo=TAMANO9;
       }break;
-    case 'O':
+    case APRETO_BOTONv:
     {
       //respuesta a la presion de una tecla
-       tamanoTipo=6; //tamaño del mensaje
-       sprintf((char*)send_buf,"<%i$%c$>", tamanoTipo, pedido);
-
+       tamanoTipo=7; //tamaño del mensaje
+       sprintf((char*)send_buf,"<07$%c$>", pedido);
+        Serial.println((char*)send_buf);
         
       }break;
   }
@@ -733,12 +732,13 @@ void receiveEvent(int howMany) {
     cont++;
     while (1 < Wire.available() && c != '$') { // loop through all but the last
       c = Wire.read(); // receive byte as a character
+      Serial.print(c);
       //guardo en s el tamanio total
       if (c != '$')
         arTamTotal[l] = c;
       l++;
       cont++;
-      Serial.print(c);         // print the character
+               // print the character
     }
 
     //convierto el valor leido en un entero (TamañoTotal):
@@ -748,10 +748,12 @@ void receiveEvent(int howMany) {
       digito =  arTamTotal[i] - '0';
       tamTotal = tamTotal * 10 + digito;
     }
-
+    
+    Serial.println("llegue");
     tipo = Wire.read();
     cont++;
-
+    Serial.println("");
+    Serial.println(tipo);
     switch (tipo) {
       case '0':
         pedido = RESPONDER_LUX;
@@ -772,49 +774,40 @@ void receiveEvent(int howMany) {
       case '4':
         pedido = RESPONDER_TODO;
         break;
-      case 'A': 
+      case 'A':
       case 'B':
       case 'C':
       case 'D':
-      case 'E':
-      {
+      case 'E':{
         //identifico que se apreto un boton
-        pedido=APRETO_BOTON;
-
+        pedido= APRETO_BOTONv;
+        Serial.println(pedido);
         //la siguiente porcion de codigo se utiliza para reconocer que tecla se apreto y hacer el mapeo a teclado driver
          int boton=-1;
-          switch(pedido){
-            case TECLA_UP:{
+          switch(tipo){
+            case TECLA_UPv:{
               boton=1;
             }break;
         
-            case TECLA_DOWN:{
+            case TECLA_DOWNv:{
               boton=2;
             }break;
         
-            case TECLA_LEFT:{
+            case TECLA_LEFTv:{
               boton=3;
             }break;
         
-            case TECLA_RIGHT:{
+            case TECLA_RIGHTv:{
               boton=0;
             }break;
-        
-            case TECLA_SELECT:{
-              boton=4;
-            }break;
-        
-            case BOTON_A2:{
+                
+            case BOTON_A2v:{
               boton=5;
             }break;
           }
           if(boton!=-1)
             teclado_virtual(boton);
           //hasta aca mapeo a teclado driver
-
-          //funcion de teclado driver que permite comunicarle que tecla se apreto 
-          teclado_virtual(boton);
-        
         }break;
     }
 
